@@ -1,0 +1,16 @@
+{
+    "coins": [
+        "bitcoin",
+        "ethereum",
+        "matic-network"
+    ],
+    "defaultFetchIntervalMinutes": 2,
+    "defaultDataTTLSeconds": 2592000,
+    "mongo": {
+        "dbName": "crypto",
+        "collectionName": "cryptos"
+    },
+    "coingecko": {
+        "baseUrl": "https://api.coingecko.com/api/v3"
+    }
+}

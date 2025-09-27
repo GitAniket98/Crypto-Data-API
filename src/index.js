@@ -1,19 +1,39 @@
-const express = require('express');
-const connectDB = require('./db'); // Handles database connection
-const routes = require('./routes'); // API routes
-const { fetchCryptoData } = require('./cronJobs'); // Background job for fetching crypto data
+// src/index.js
+const express = require("express");
+const bodyParser = require("body-parser");
+const routes = require("./routes");
+const { connect } = require("./db");
+const { startCron } = require("./cronJobs");
+require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
-connectDB();
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Start background job to fetch crypto data every 2 hours
-fetchCryptoData();
+// Basic health endpoint
+app.get("/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
 
-app.use(express.json()); // Parse incoming JSON
-app.use('/api', routes); // API routes start with /api
+// Mount routes
+app.use("/", routes);
 
-// Start server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start DB and server
+(async () => {
+    try {
+        connect();
+
+        // Start cron with interval from env or config
+        const fetchInterval = process.env.FETCH_INTERVAL_MINUTES ? parseInt(process.env.FETCH_INTERVAL_MINUTES, 10) : undefined;
+        startCron(fetchInterval);
+
+        app.listen(PORT, () => {
+            console.log(`Server listening on port ${PORT}`);
+        });
+    } catch (err) {
+        console.error("Failed to start application:", err);
+        process.exit(1);
+    }
+})();
+
+module.exports = app;

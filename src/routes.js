@@ -1,48 +1,122 @@
-const express = require('express');
-const Crypto = require('./models/Crypto'); // Import the Crypto model for database queries
-const router = express.Router(); // Initialize a new router for handling routes
+// src/routes.js
+const express = require("express");
+const { query, validationResult } = require("express-validator");
+const Crypto = require("./models/Crypto");
+const config = require("../config.json");
 
-// Route to fetch the latest stats of a cryptocurrency
-router.get('/stats', async (req, res) => {
-    try {
-        const { coin } = req.query; // Get the 'coin' query parameter from the request
-        const latest = await Crypto.findOne({ coin }).sort({ timestamp: -1 }); // Fetch the latest record for the requested coin
+const router = express.Router();
 
-        // If no record found, return a 404 error
-        if (!latest) return res.status(404).json({ message: "Coin not found" });
-
-        // Respond with the price, market cap, and 24-hour change of the latest record
-        res.json({
-            price: latest.price,
-            marketCap: latest.marketCap,
-            "24hChange": latest.change24h,
-        });
-    } catch (error) {
-        // Catch any server-side errors and respond with a 500 status
-        res.status(500).json({ error: "Server error" });
+// Helper middleware to check validations
+function handleValidationErrors(req, res, next) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
     }
+    next();
+}
+
+/**
+ * GET /coins
+ * Returns the configured coins.
+ */
+router.get("/coins", (req, res) => {
+    const coinsFromConfig = (process.env.COINS && process.env.COINS.split(",")) || config.coins || [];
+    res.json({ coins: coinsFromConfig });
 });
 
-// Route to calculate the standard deviation of a cryptocurrency's price
-router.get('/deviation', async (req, res) => {
-    try {
-        const { coin } = req.query; // Get the 'coin' query parameter from the request
-        const records = await Crypto.find({ coin }).sort({ timestamp: -1 }).limit(100); // Fetch the latest 100 records for the coin
-
-        // If no records found, return a 404 error
-        if (records.length === 0) return res.status(404).json({ message: "Coin not found" });
-
-        const prices = records.map(record => record.price); // Extract the prices from the records
-        const mean = prices.reduce((a, b) => a + b, 0) / prices.length; // Calculate the mean (average) of the prices
-        const deviation = Math.sqrt(prices.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / prices.length); // Calculate the standard deviation
-
-        // Respond with the calculated standard deviation rounded to two decimal places
-        res.json({ deviation: parseFloat(deviation.toFixed(2)) });
-    } catch (error) {
-        // Catch any server-side errors and respond with a 500 status
-        res.status(500).json({ error: "Server error" });
+/**
+ * GET /stats?coin=bitcoin
+ * Returns the latest snapshot for a coin.
+ */
+router.get(
+    "/stats",
+    [query("coin").isString().notEmpty().trim()],
+    handleValidationErrors,
+    async (req, res) => {
+        try {
+            const { coin } = req.query;
+            const latest = await Crypto.findOne({ coin }).sort({ timestamp: -1 }).lean().exec();
+            if (!latest) return res.status(404).json({ error: "No data for coin" });
+            res.json(latest);
+        } catch (err) {
+            console.error("Error in /stats:", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
     }
-});
+);
 
-// Export the router to be used in other parts of the application
+/**
+ * GET /deviation?coin=bitcoin&limit=100
+ * Returns standard deviation of price over last N records (default 100)
+ */
+router.get(
+    "/deviation",
+    [
+        query("coin").isString().notEmpty().trim(),
+        query("limit").optional().isInt({ min: 2, max: 10000 }).toInt()
+    ],
+    handleValidationErrors,
+    async (req, res) => {
+        try {
+            const { coin } = req.query;
+            const limit = req.query.limit ? parseInt(req.query.limit, 10) : 100;
+
+            const docs = await Crypto.find({ coin }).sort({ timestamp: -1 }).limit(limit).lean().exec();
+            if (!docs || docs.length === 0) return res.status(404).json({ error: "Not enough data" });
+
+            const prices = docs.map((d) => Number(d.price)).filter((p) => Number.isFinite(p));
+            if (prices.length < 2) return res.status(400).json({ error: "Not enough price data" });
+
+            // Calculate sample standard deviation
+            const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+            const variance = prices.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (prices.length - 1);
+            const stddev = Math.sqrt(variance);
+
+            res.json({ coin, stddev, samples: prices.length });
+        } catch (err) {
+            console.error("Error in /deviation:", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    }
+);
+
+/**
+ * GET /history?coin=bitcoin&page=1&limit=50
+ * Returns historical snapshots for a coin with pagination
+ */
+router.get(
+    "/history",
+    [
+        query("coin").isString().notEmpty().trim(),
+        query("page").optional().isInt({ min: 1 }).toInt(),
+        query("limit").optional().isInt({ min: 1, max: 1000 }).toInt()
+    ],
+    handleValidationErrors,
+    async (req, res) => {
+        try {
+            const coin = req.query.coin;
+            const page = parseInt(req.query.page || 1, 10);
+            const limit = parseInt(req.query.limit || 100, 10);
+            const skip = (page - 1) * limit;
+
+            const [total, docs] = await Promise.all([
+                Crypto.countDocuments({ coin }),
+                Crypto.find({ coin }).sort({ timestamp: -1 }).skip(skip).limit(limit).lean().exec()
+            ]);
+
+            res.json({
+                coin,
+                page,
+                limit,
+                total,
+                pages: Math.ceil(total / limit),
+                data: docs
+            });
+        } catch (err) {
+            console.error("Error in /history:", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    }
+);
+
 module.exports = router;
