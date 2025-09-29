@@ -196,9 +196,73 @@ The cron job fetches data for Bitcoin, Ethereum, and Matic and stores it in the 
 
 ---
 
+# 📊 Analytics Layer (Python)
+
+For deeper insights, the `analytics/` folder contains Python scripts for **statistical and trend analysis**.
+
+---
+
+## ✅ Features
+- **Moving Averages (SMA)** → Detect short-term vs long-term trends  
+- **Volatility** → Rolling standard deviation to measure market risk  
+- **Correlation Analysis**  
+  - Static correlations across BTC, ETH, and MATIC  
+  - Rolling correlations to track changing relationships over time  
+- **Visualizations** → All analytics are saved as PNG charts inside `analytics/outputs/`
+
+---
+
+## ▶️ How to Run
+
+```bash
+cd analytics
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Example: Run SMA & Volatility analysis
+python analysis.py
+
+# Example: Run correlation analysis
+python correlation.py
+```
+## 📂 Analysis Results
+
+This folder contains the output visualizations generated from the cryptocurrency data analysis scripts. The results include **SMA (Simple Moving Average), volatility**, and **correlation analyses**.
+
+### 📈 SMA & Volatility
+
+Visualizations of Bitcoin price trends and volatility:
+
+- **Bitcoin SMA (Simple Moving Average):**  
+  `outputs/bitcoin_price_sma.png`  
+  Displays short-term and long-term trends in Bitcoin prices.
+
+- **Bitcoin Volatility:**  
+  `outputs/bitcoin_volatility.png`  
+  Shows rolling standard deviation to indicate price risk and fluctuation intensity.
+
+### 🔗 Correlation Analysis
+
+Correlation plots across multiple cryptocurrencies:
+
+- **Coin Correlation Heatmap:**  
+  `outputs/coin_correlation_heatmap.png`  
+  Static correlations between Bitcoin (BTC), Ethereum (ETH), and Matic (MATIC).
+
+- **Rolling Correlation Plots:**  
+  `outputs/rolling_correlation_btc_eth.png`  
+  `outputs/rolling_correlation_btc_matic.png`  
+  `outputs/rolling_correlation_eth_matic.png`  
+  Illustrates how relationships between BTC, ETH, and MATIC change over time.
+ 
+
+
+
 ## **Technologies Used**
 
 - **Node.js**: JavaScript runtime for building the backend server.
+- **Python + Pandas/Numpy/Matplotlib** : Analytics & visualization
 - **Express.js**: Web framework for creating the API routes.
 - **MongoDB**: NoSQL database to store cryptocurrency data.
 - **Mongoose**: MongoDB ODM for schema-based data modeling.
