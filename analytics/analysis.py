@@ -67,7 +67,7 @@ if __name__ == "__main__":
     coins = ["bitcoin", "ethereum", "matic-network"]
 
     for coin in coins:
-        df = fetch_latest_records(coin, limit=200)
+        df = fetch_latest_records(coin, limit=1000)
         if df is not None:
             df = calculate_moving_averages(df)
             df = calculate_volatility(df)
