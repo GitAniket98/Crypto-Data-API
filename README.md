@@ -1,218 +1,221 @@
-# 📊 Cryptocurrency Data Backend
+# Cryptocurrency Data Backend
 
-## 🚀 Project Overview
-This backend application fetches cryptocurrency data from the **CoinGecko API**, stores it in a **MongoDB database**, and provides multiple API endpoints for accessing and analyzing the data.  
-It supports **Bitcoin, Ethereum, and Matic** with real-time stats, historical records, and statistical analysis such as **price deviation**.
+A production-ready backend application that fetches cryptocurrency data from **CoinGecko API**, stores it in **MongoDB**, and provides RESTful API endpoints for real-time stats, historical data, and analytics.
 
----
+## Features
 
-## ✨ Features
-- **Automatic Data Fetching**: Fetches the current price, market cap, and 24-hour change for supported coins every **2 minutes** using a cron job.
-- **Data Storage**: Stores records in MongoDB with automatic cleanup using TTL (older than 24h removed).
-- **API Endpoints**:
-  - `/stats` → Latest snapshot of a cryptocurrency
-  - `/deviation` → Price deviation (last 100 records)
-  - `/coins` → List all supported coins
-  - `/history` → Last 100 records for a coin
-- **Validation & Error Handling**: Ensures only supported coins are queried.
-- **Scalable Structure**: Ready for integration with analytics & trend detection (Python layer).
+- **Real-time Data Fetching**: Automatic updates every 2 minutes via cron job
+- **MongoDB Storage**: Efficient data storage with automatic TTL cleanup
+- **8 Cryptocurrencies Supported**: Bitcoin, Ethereum, Matic/POL, Cardano, Solana, Ripple, Dogecoin, Polkadot
+- **Statistical Analysis**: Price deviation, moving averages, volatility metrics
+- **Compare Feature**: Compare multiple cryptocurrencies side-by-side
+- **Input Validation**: Express-validator for robust API security
+- **Security**: Helmet.js for HTTP headers, CORS enabled
+- **Well-Documented API**: Clear endpoints with error handling
 
----
+## Quick Start
 
-# 📡 API Endpoints – Cryptocurrency Data Backend
+### Prerequisites
 
----
+- Node.js (v14 or higher)
+- MongoDB Atlas account
+- Git
 
-## 1. `/stats` – Get Latest Data for a Cryptocurrency
-**Method**: `GET`  
-**Description**: Returns the latest snapshot (price, market cap, 24h change) for a given cryptocurrency.
+### Installation
 
-### Query Parameters
-- `coin` (string, required) → one of: `bitcoin`, `ethereum`, `matic-network`
+```bash
+# Clone the repository
+git clone https://github.com/GitAniket98/Crypto-Data-API.git
+cd Crypto-Data-API
 
-### Sample Request
+# Install dependencies
+npm install
 
-### **1. `/stats` - Get Latest Data for a Cryptocurrency**
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your MongoDB URI
 
-- **Method**: `GET`
-- **Query Parameters**:
-  - `coin`: (string) One of the supported cryptocurrencies: `bitcoin`, `matic-network`, `ethereum`.
-  
-- **Sample Request**:
-  ```bash
-  GET /stats?coin=bitcoin
-  ```
-  
-- **Sample Response**:
-  ```json
-  {
-  "price": 95362,
-  "marketCap": 1888354421186.503,
-  "24hChange": 3.432
-  }
+# Start the server
+npm start
+```
 
-  ```
+The API will be running at `http://localhost:3000`
 
-### **2. `/deviation` - Get Price Deviation for the Last 100 Records**
+## 📡 API Endpoints
 
-- **Method**: `GET`
-- **Query Parameters**:
-  - `coin`: (string) One of the supported cryptocurrencies: `bitcoin`, `matic-network`, `ethereum`.
-  
-- **Sample Request**:
-  ```bash
-  GET /deviation?coin=bitcoin
-  ```
-  
-- **Sample Response**:
-  ```json
-  {
+### 1. Health Check
+
+**GET** `/health`
+
+Check if the API is running.
+
+**Response:**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-02-09T10:30:00.000Z",
+  "uptime": 3600
+}
+```
+
+### 2. Get Supported Coins
+
+**GET** `/api/coins`
+
+Returns list of all supported cryptocurrencies.
+
+**Response:**
+
+```json
+{
+  "coins": [
+    "bitcoin",
+    "ethereum",
+    "matic-network",
+    "cardano",
+    "solana",
+    "ripple",
+    "dogecoin",
+    "polkadot"
+  ],
+  "count": 8,
+  "message": "Supported cryptocurrencies"
+}
+```
+
+### 3. Get Latest Stats
+
+**GET** `/api/stats?coin=bitcoin`
+
+Get the most recent data for a cryptocurrency.
+
+**Parameters:**
+
+- `coin` (required): One of the supported cryptocurrencies
+
+**Response:**
+
+```json
+{
   "coin": "bitcoin",
-  "stddev": 294.39,
-  "samples": 100
+  "price": 95362.5,
+  "marketCap": 1888354421186.5,
+  "24hChange": 3.43,
+  "timestamp": "2025-02-09T10:30:00.000Z"
+}
+```
+
+### 4. Get Price Deviation
+
+**GET** `/api/deviation?coin=bitcoin&limit=100`
+
+Calculate standard deviation of price over the last N records.
+
+**Parameters:**
+
+- `coin` (required): Cryptocurrency name
+- `limit` (optional, default: 100): Number of records to analyze (2-1000)
+
+**Response:**
+
+```json
+{
+  "coin": "bitcoin",
+  "deviation": 294.39,
+  "mean": 95000.25,
+  "samples": 100,
+  "timeRange": {
+    "from": "2025-02-09T07:00:00.000Z",
+    "to": "2025-02-09T10:30:00.000Z"
   }
+}
+```
 
-  ```
- ### **3. `/history` - Historical Records**
+### 5. Get Historical Data
 
-- **Method**: `GET`
-- **Query Parameters**:
-  - `coin`: (string) One of the supported cryptocurrencies: `bitcoin`, `matic-network`, `ethereum`.
-  - `page`: (int)
-  - `limit`: (int) Optional
-  
-- **Sample Request**:
-  ```bash
-  GET /history?coin=ethereum&page=1&limit=2
-  ```
-  
-- **Sample Response**:
-  ```json
-  {
+**GET** `/api/history?coin=ethereum&page=1&limit=50`
+
+Retrieve historical records with pagination.
+
+**Parameters:**
+
+- `coin` (required): Cryptocurrency name
+- `page` (optional, default: 1): Page number
+- `limit` (optional, default: 100, max: 1000): Records per page
+
+**Response:**
+
+```json
+{
   "coin": "ethereum",
   "page": 1,
-  "limit": 2,
+  "limit": 50,
   "total": 1500,
-  "pages": 750,
+  "totalPages": 30,
+  "hasNextPage": true,
+  "hasPrevPage": false,
   "data": [
     {
       "price": 3100.5,
       "marketCap": 375000000000,
       "24hChange": -0.45,
-      "timestamp": "2025-09-27T19:40:00.000Z"
-    },
-    {
-      "price": 3115.2,
-      "marketCap": 376000000000,
-      "24hChange": 0.30,
-      "timestamp": "2025-09-27T19:42:00.000Z"
+      "timestamp": "2025-02-09T10:30:00.000Z"
     }
   ]
-  }
-
-  ```
-
-### **4. `/coins` - Supported Coins**
-
-- **Method**: `GET`
-  
-- **Sample Request**:
-  ```bash
-  GET /coins
-  ```
-  
-- **Sample Response**:
-  ```json
-  {
-  "coins": ["bitcoin", "ethereum", "matic-network"]
-  }
-
-  ```
-
-
----
-
-## **Installation and Setup**
-
-### **Prerequisites**
-
-Before setting up the project, ensure you have the following installed:
-
-- **Node.js** (v14 or higher)
-- **MongoDB Atlas** account (for remote database)
-- **Git** (for version control)
-
-### **Step 1: Clone the Repository**
-
-Clone the repository to your local machine using Git:
-
-```bash
-git clone https://github.com/GitAniket98/Crypto-Data-API.git
-cd Crypto-Data-API
+}
 ```
 
-### **Step 2: Install Dependencies**
+### 6. Compare Cryptocurrencies (NEW)
 
-Install all the project dependencies using npm:
+**GET** `/api/compare?coins=bitcoin,ethereum,solana`
 
-```bash
-npm install
+Compare multiple cryptocurrencies side-by-side.
+
+**Parameters:**
+
+- `coins` (required): Comma-separated list of coin names
+
+**Response:**
+
+```json
+{
+  "comparison": [
+    {
+      "coin": "bitcoin",
+      "price": 95362.5,
+      "marketCap": 1888354421186.5,
+      "24hChange": 3.43,
+      "timestamp": "2025-02-09T10:30:00.000Z"
+    },
+    {
+      "coin": "ethereum",
+      "price": 3100.5,
+      "marketCap": 375000000000,
+      "24hChange": -0.45,
+      "timestamp": "2025-02-09T10:30:00.000Z"
+    }
+  ],
+  "count": 2,
+  "timestamp": "2025-02-09T10:30:00.000Z"
+}
 ```
 
-### **Step 3: Set Up Environment Variables**
+## Configuration
 
-Create a `.env` file in the root directory of the project and add your **MongoDB URI**:
+Edit `config.json` to customize:
 
-```
-MONGO_URI=your_mongo_connection_string
-PORT=3000
-FETCH_INTERVAL_MINUTES=2
-DATA_TTL_SECONDS=2592000
-```
-
-You can get your MongoDB connection string from your [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) account.
-
-### **Step 4: Run the Project**
-
-Run the application locally:
-
-```bash
-npm start
+```json
+{
+  "coins": ["bitcoin", "ethereum", ...],
+  "defaultFetchIntervalMinutes": 2,
+  "defaultDataTTLSeconds": 2592000
+}
 ```
 
-The application will now be running on `http://localhost:3000`.
+## Analytics Layer (Python)
 
----
-
-## **Cron Job to Fetch Data**
-
-This application uses **node-cron** to fetch cryptocurrency data every 2 hours from the **CoinGecko API** and store it in MongoDB. This process is automated through the following cron schedule:
-
-```js
-cron.schedule("*/2 * * * *", fetchCryptoData);
-```
-
-The cron job fetches data for Bitcoin, Ethereum, and Matic and stores it in the MongoDB database.
-
----
-
-# 📊 Analytics Layer (Python)
-
-For deeper insights, the `analytics/` folder contains Python scripts for **statistical and trend analysis**.
-
----
-
-## ✅ Features
-- **Moving Averages (SMA)** → Detect short-term vs long-term trends  
-- **Volatility** → Rolling standard deviation to measure market risk  
-- **Correlation Analysis**  
-  - Static correlations across BTC, ETH, and MATIC  
-  - Rolling correlations to track changing relationships over time  
-- **Visualizations** → All analytics are saved as PNG charts inside `analytics/outputs/`
-
----
-
-## ▶️ How to Run
+Advanced analytics scripts for trend analysis and visualization.
 
 ```bash
 cd analytics
@@ -220,54 +223,95 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Example: Run SMA & Volatility analysis
+# Run analysis
 python analysis.py
-
-# Example: Run correlation analysis
 python correlation.py
 ```
-## 📂 Analysis Results
 
-This folder contains the output visualizations generated from the cryptocurrency data analysis scripts. The results include **SMA (Simple Moving Average), volatility**, and **correlation analyses**.
+**Features:**
 
-### 📈 SMA & Volatility
+- Simple Moving Averages (SMA)
+- Volatility analysis
+- Correlation heatmaps
+- Rolling correlations
+- PNG visualizations in `analytics/outputs/`
 
-Visualizations of Bitcoin price trends and volatility:
+## Security Features
 
-- **Bitcoin SMA (Simple Moving Average):**  
-  `outputs/bitcoin_price_sma.png`  
-  Displays short-term and long-term trends in Bitcoin prices.
+- **Helmet.js** - Security headers
+- **CORS** - Cross-origin resource sharing
+- **Input Validation** - Express-validator
+- **Error Handling** - Comprehensive error responses
+- **MongoDB Injection Protection** - Mongoose schema validation
 
-- **Bitcoin Volatility:**  
-  `outputs/bitcoin_volatility.png`  
-  Shows rolling standard deviation to indicate price risk and fluctuation intensity.
+## Project Structure
 
-### 🔗 Correlation Analysis
+```
+Crypto-Data-API/
+├── src/
+│   ├── models/
+│   │   └── Crypto.js          # MongoDB schema
+│   ├── cronJobs.js             # Data fetching cron job
+│   ├── db.js                   # Database connection
+│   ├── index.js                # Express server
+│   └── routes.js               # API routes
+├── analytics/
+│   ├── analysis.py             # SMA & volatility
+│   ├── correlation.py          # Correlation analysis
+│   └── requirements.txt        # Python dependencies
+├── config.json                 # App configuration
+├── package.json                # Node dependencies
+└── README.md                   # Documentation
+```
 
-Correlation plots across multiple cryptocurrencies:
+## Testing the API(Locally)
 
-- **Coin Correlation Heatmap:**  
-  `outputs/coin_correlation_heatmap.png`  
-  Static correlations between Bitcoin (BTC), Ethereum (ETH), and Matic (MATIC).
+```bash
+# Health check
+curl http://localhost:3000/api/health
 
-- **Rolling Correlation Plots:**  
-  `outputs/rolling_correlation_btc_eth.png`  
-  `outputs/rolling_correlation_btc_matic.png`  
-  `outputs/rolling_correlation_eth_matic.png`  
-  Illustrates how relationships between BTC, ETH, and MATIC change over time.
- 
+# Get all supported coins
+curl http://localhost:3000/api/coins
 
+# Get Bitcoin stats
+curl http://localhost:3000/api/stats?coin=bitcoin
 
+# Get price deviation
+curl http://localhost:3000/api/deviation?coin=ethereum
 
-## **Technologies Used**
+# Get historical data
+curl http://localhost:3000/api/history?coin=solana&page=1&limit=10
 
-- **Node.js**: JavaScript runtime for building the backend server.
-- **Python + Pandas/Numpy/Matplotlib** : Analytics & visualization
-- **Express.js**: Web framework for creating the API routes.
-- **MongoDB**: NoSQL database to store cryptocurrency data.
-- **Mongoose**: MongoDB ODM for schema-based data modeling.
-- **Axios**: Promise-based HTTP client to make requests to the CoinGecko API.
-- **Node-Cron**: To schedule background jobs to fetch data periodically.
-- **CoinGecko API**: Source for cryptocurrency data.
+# Compare multiple coins
+curl http://localhost:3000/api/compare?coins=bitcoin,ethereum,cardano
+```
 
----
+## Future Enhancements
+
+- [ ] WebSocket support for real-time updates
+- [ ] User authentication and API keys
+- [ ] Rate limiting per user
+- [ ] Price alerts via email/SMS
+- [ ] More cryptocurrencies
+- [ ] Advanced charting endpoints
+- [ ] Machine learning price predictions
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT License - feel free to use this project for learning and portfolio purposes.
+
+## Author
+
+**Aniket**
+
+- GitHub: [@GitAniket98](https://github.com/GitAniket98)
+
+## Acknowledgments
+
+- [CoinGecko API](https://www.coingecko.com/api) for cryptocurrency data
+- [MongoDB](https://www.mongodb.com/) for database
+- [Express.js](https://expressjs.com/) for web framework

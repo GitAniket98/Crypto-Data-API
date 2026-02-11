@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 from fetch_data import fetch_latest_records
 import pandas as pd
 
-# -------------------------
+
 # Analytics Functions
-# -------------------------
 def calculate_moving_averages(df: pd.DataFrame, short_window=10, long_window=50):
     """Add short and long SMA to DataFrame."""
     df["SMA_short"] = df["price"].rolling(window=short_window).mean()
@@ -17,9 +16,8 @@ def calculate_volatility(df: pd.DataFrame, window=20):
     df["Volatility"] = df["price"].rolling(window=window).std()
     return df
 
-# -------------------------
+
 # Visualization Functions
-# -------------------------
 def plot_price_with_sma(df, coin, save=True):
     """Plot price with short and long SMA."""
     plt.figure(figsize=(12, 6))
@@ -37,7 +35,7 @@ def plot_price_with_sma(df, coin, save=True):
         os.makedirs("outputs", exist_ok=True)
         file_path = f"outputs/{coin}_price_sma.png"
         plt.savefig(file_path)
-        print(f"📁 Saved: {file_path}")
+        print(f"Saved: {file_path}")
 
     plt.show()
 
@@ -56,15 +54,23 @@ def plot_volatility(df, coin, save=True):
         os.makedirs("outputs", exist_ok=True)
         file_path = f"outputs/{coin}_volatility.png"
         plt.savefig(file_path)
-        print(f"📁 Saved: {file_path}")
+        print(f"Saved: {file_path}")
 
     plt.show()
 
-# -------------------------
+
 # Main Script
-# -------------------------
 if __name__ == "__main__":
-    coins = ["bitcoin", "ethereum", "matic-network"]
+    coins = [
+        "bitcoin", 
+        "ethereum", 
+        "matic-network", 
+        "solana", 
+        "cardano", 
+        "ripple", 
+        "polkadot", 
+        "dogecoin"
+    ]
 
     for coin in coins:
         df = fetch_latest_records(coin, limit=1000)
@@ -72,11 +78,11 @@ if __name__ == "__main__":
             df = calculate_moving_averages(df)
             df = calculate_volatility(df)
 
-            print(f"\n✅ Analysis Results for {coin.capitalize()} (last 5 rows):")
+            print(f"\n Analysis Results for {coin.capitalize()} (last 5 rows):")
             print(df.tail())
 
             # --- Plots ---
             plot_price_with_sma(df, coin)
             plot_volatility(df, coin)
         else:
-            print(f"⚠️ No data found for {coin}")
+            print(f"No data found for {coin}")
