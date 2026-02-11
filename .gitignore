@@ -1,2 +1,8 @@
 node_modules
 .env
+venv/
+__pycache__
+*.pyc
+.DS_Store
+__pycache__
+venv
