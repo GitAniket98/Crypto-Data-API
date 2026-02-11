@@ -2,7 +2,12 @@
     "coins": [
         "bitcoin",
         "ethereum",
-        "matic-network"
+        "matic-network",
+        "cardano",
+        "solana",
+        "ripple",
+        "dogecoin",
+        "polkadot"
     ],
     "defaultFetchIntervalMinutes": 2,
     "defaultDataTTLSeconds": 2592000,
