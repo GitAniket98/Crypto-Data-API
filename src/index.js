@@ -1,39 +1,77 @@
-// src/index.js
 const express = require("express");
-const bodyParser = require("body-parser");
-const routes = require("./routes");
+const cors = require("cors");
+const helmet = require("helmet");
 const { connect } = require("./db");
+const routes = require("./routes");
 const { startCron } = require("./cronJobs");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Security middleware
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
 
-// Basic health endpoint
-app.get("/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.status(200).json({ 
+        status: "ok", 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
 
-// Mount routes
-app.use("/", routes);
+// Root endpoint 
+app.get("/api/", (req, res) => {
+    res.json({
+        message: "Cryptocurrency Data API",
+        version: "1.0.0",
+        endpoints: {
+            health: "/health",
+            coins: "/coins",
+            stats: "/stats?coin=bitcoin",
+            deviation: "/deviation?coin=bitcoin",
+            history: "/history?coin=bitcoin&page=1&limit=10"
+        }
+    });
+});
 
-// Start DB and server
-(async () => {
+// API routes
+app.use("/api", routes);
+
+app.use((req, res) => {
+    res.status(404).json({ error: "Route not found" });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: "Something went wrong!" });
+});
+
+// Start server
+async function startServer() {
     try {
-        connect();
+        await connect();
+        console.log("Database connected");
 
-        // Start cron with interval from env or config
-        const fetchInterval = process.env.FETCH_INTERVAL_MINUTES ? parseInt(process.env.FETCH_INTERVAL_MINUTES, 10) : undefined;
-        startCron(fetchInterval);
+        const intervalMinutes = parseInt(process.env.FETCH_INTERVAL_MINUTES || 2, 10);
+        startCron(intervalMinutes);
+        console.log(`Cron job started (every ${intervalMinutes} minutes)`);
 
         app.listen(PORT, () => {
-            console.log(`Server listening on port ${PORT}`);
+            console.log(`Server running on port ${PORT}`);
+            console.log(`API: http://localhost:${PORT}`);
+            console.log(`Health: http://localhost:${PORT}/health`);
         });
-    } catch (err) {
-        console.error("Failed to start application:", err);
+    } catch (error) {
+        console.error("Failed to start server:", error);
         process.exit(1);
     }
-})();
+}
+
+startServer();
 
 module.exports = app;
